@@ -217,7 +217,15 @@ static void set_capture_params(int fd)
 // struct v4l2_fract  timeperframe;  /*  Time per frame in seconds */
 }
 
-
+static void print_capture_format(struct v4l2_pix_format * pix)
+{
+    LOG_INFO("Res = %u x %u", pix->width, pix->height);
+    LOG_INFO("Colorspace = %u (%s)", pix->colorspace, colorspace2str(pix->colorspace));
+    LOG_INFO("Format %s", pixelfmt2str(pix->pixelformat));
+    LOG_INFO("Field %u", pix->field);
+    LOG_INFO("Bytes per line %u", pix->bytesperline);
+    LOG_INFO("Image size %u", pix->sizeimage);
+}
 
 static void set_format(int fd)
 {
@@ -230,24 +238,35 @@ static void set_format(int fd)
         return;
     }
     struct v4l2_pix_format * pix = &fmt.fmt.pix;
-    LOG_INFO("Res = %u x %u", pix->width, pix->height);
-    LOG_INFO("Colorspace = %s", colorspace2str(pix->colorspace));
-    LOG_INFO("Format %s", pixelfmt2str(pix->pixelformat));
-    LOG_INFO("Field %u", pix->field);
-    LOG_INFO("Bytes per line %u", pix->bytesperline);
-    LOG_INFO("Image size %u", pix->sizeimage);
+    print_capture_format(pix);
 
-    memset(&fmt, 0, sizeof(fmt));
-    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    pix->sizeimage = pix->height * pix->bytesperline;
+
+    retVal = ioctl(fd, VIDIOC_S_FMT, &fmt);
+    if(retVal == -1)
+    {
+        LOG_ERRNO_AS_ERROR("VIDIOC_S_FMT");
+        return;
+    }
+
     retVal = ioctl(fd, VIDIOC_G_FMT, &fmt);
     if(retVal == -1)
     {
         return;
     }
-    LOG_INFO("Res = %u x %u", fmt.fmt.pix_mp.width, fmt.fmt.pix_mp.height);
-    __u32 px = fmt.fmt.pix_mp.pixelformat;
-    LOG_INFO("Format %s", pixelfmt2str(px));
-    LOG_INFO("Field %u", fmt.fmt.pix_mp.field);
+    print_capture_format(pix);
+ 
+//    memset(&fmt, 0, sizeof(fmt));
+//    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+//    retVal = ioctl(fd, VIDIOC_G_FMT, &fmt);
+//    if(retVal == -1)
+//    {
+//        return;
+//    }
+//    LOG_INFO("Res = %u x %u", fmt.fmt.pix_mp.width, fmt.fmt.pix_mp.height);
+//    __u32 px = fmt.fmt.pix_mp.pixelformat;
+//    LOG_INFO("Format %s", pixelfmt2str(px));
+//    LOG_INFO("Field %u", fmt.fmt.pix_mp.field);
 }
 
 static int request_buffers(int fd, void ** starts, size_t * lengths)
@@ -264,6 +283,7 @@ static int request_buffers(int fd, void ** starts, size_t * lengths)
     if(status == -1)
     {
         LOG_ERROR("Failed to create buffers");
+        perror("VIDIOC_REQBUFS");
         exit(EXIT_FAILURE);
     }
     for(i = 0; i < reqbuf.count; i++)

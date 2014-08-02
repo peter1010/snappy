@@ -32,10 +32,20 @@ static const char log_category[] = __BASE_FILE__;
 #define LOG_INFO(...)  log_msg(log_category, __LINE__, LOG_INFO_LVL,  __VA_ARGS__)
 #define LOG_DEBUG(...) log_msg(log_category, __LINE__, LOG_DEBUG_LVL, __VA_ARGS__)
 
+#define LOG_ERRNO_AS_ERROR(...) log_errno(log_category, __LINE__, LOG_ERROR_LVL, __VA_ARGS__)
+
 /* Append additional info to previous log message */
 #define LOG_APPEND(...) log_msg_append(__VA_ARGS__)
 
 extern void log_msg(
+    const char * category,
+    int line,
+    unsigned level,
+    const char * fmt,
+    ...) __attribute__((format (printf, 4, 5)));
+
+
+extern void log_errno(
     const char * category,
     int line,
     unsigned level,

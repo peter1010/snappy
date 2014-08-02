@@ -1,6 +1,8 @@
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #include "logging.h"
 
@@ -42,6 +44,30 @@ void log_msg(const char * category, int line, unsigned level, const char * fmt, 
 
         fprintf(log_out, "[%s:%i] ", category, line);
         vfprintf(log_out, fmt, ap);
+        fputs("\n", log_out);
+
+        va_end(ap);
+        log_append_allowed = true;
+    }
+    else
+    {
+        log_append_allowed = false;
+    }
+}
+
+void log_errno(const char * category, int line, unsigned level, const char * fmt, ...)
+{
+    if(level <= log_level)
+    {
+        log_init();
+
+        va_list ap;
+        va_start(ap, fmt);
+
+        fprintf(log_out, "[%s:%i] ", category, line);
+        vfprintf(log_out, fmt, ap);
+        fputs(":", log_out);
+        fputs(strerror(errno), log_out);
         fputs("\n", log_out);
 
         va_end(ap);
