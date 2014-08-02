@@ -1,8 +1,8 @@
-CFLAGS=-Wall -O3
+CFLAGS=-Wall -O3 -Wextra
 
-MAKEDEPEND=gcc -M $(CPPFLAGS) -o $*.d $<
-COMPILE=gcc -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
-LINK=gcc $(LDFLAGS) -o $@
+CC=gcc -c
+MAKEDEPEND=gcc -M $(CPPFLAGS)
+LINK=gcc $(LDFLAGS)
 
 OBJS= capture.o logging.o debug.o
 
@@ -10,12 +10,12 @@ OBJS= capture.o logging.o debug.o
 all: capture
 
 capture: $(OBJS)
-	$(LINK) $(OBJS)
+	$(LINK) $(OBJS) -o $@
 
 
 %.o : %.c
-	$(COMPILE) -MMD
-	@cp $*.d $*.P;
+	$(CC) $(CPPFLAGS) -MMD $(CFLAGS) -o $@ $<
+	@cp $*.d $*.P
 	@sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' -e '/^$$/ d' -e 's/$$/ :/' < $*.d >> $*.P
 	@rm -f $*.d
 	@mv $*.P $*.d
