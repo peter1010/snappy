@@ -295,7 +295,7 @@ const char * colorspace2str(int space)
 const char * pixelfmt2str(__u32 px)
 {
     static char tmp[100];
-    sprintf(tmp, "(%8x) %c%c%c%c", 
+    sprintf(tmp, "(%8x) %c%c%c%c",
         px, px & 0xff, (px >> 8) & 0xff, (px >> 16) & 0xff, (px >> 24) & 0xff);
     return tmp;
 }

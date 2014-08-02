@@ -29,17 +29,17 @@ static __u32 check_capabilities(int fd)
         return 0;
     }
 
-    LOG_INFO("%.16s, Card: %.32s, ver: 0x%x, bus: %.32s", 
+    LOG_INFO("%.16s, Card: %.32s, ver: 0x%x, bus: %.32s",
             cap.driver, cap.card, cap.version, cap.bus_info);
 
     __u32 caps = cap.capabilities;
-    LOG_INFO("Card capabilites are 0x%X (%s)", 
+    LOG_INFO("Card capabilites are 0x%X (%s)",
             caps, cap2str(caps));
 
     if(caps & V4L2_CAP_DEVICE_CAPS )
     {
         caps = cap.device_caps;
-        LOG_INFO("Device capabilites are 0x%X (%s)", 
+        LOG_INFO("Device capabilites are 0x%X (%s)",
             caps, cap2str(caps));
     }
 
@@ -209,13 +209,13 @@ static void set_capture_params(int fd)
         return;
     }
 
-    LOG_INFO("Capture capability=0x%X (%s)", 
+    LOG_INFO("Capture capability=0x%X (%s)",
             capture->capability, capcap2str(capture->capability));
-    LOG_INFO("Capture mode=0x%X (%s)", 
+    LOG_INFO("Capture mode=0x%X (%s)",
             capture->capturemode, capcap2str(capture->capturemode));
-    LOG_INFO("Read buffers=%i", capture->readbuffers); 
+    LOG_INFO("Read buffers=%i", capture->readbuffers);
 // struct v4l2_fract  timeperframe;  /*  Time per frame in seconds */
-} 
+}
 
 
 
@@ -341,7 +341,7 @@ static void queue_buffer(int fd, int i)
  * @retutn the flags
  */
 static __u32 query_buffer(int fd, int i)
-{    
+{
     struct v4l2_buffer buffer;
 
     memset(&buffer, 0, sizeof(buffer));
@@ -361,7 +361,7 @@ static __u32 query_buffer(int fd, int i)
 /*
  * Wait for a buffer to be ready
  */
-static int wait_buffer_ready(int fd, __u32 * bytes_avail) 
+static int wait_buffer_ready(int fd, __u32 * bytes_avail)
 {
     struct v4l2_buffer buffer;
 
@@ -377,7 +377,7 @@ static int wait_buffer_ready(int fd, __u32 * bytes_avail)
     }
     *bytes_avail = buffer.bytesused;
     return buffer.index;
- 
+
 }
 
 int main(int argc, char * argv[])
@@ -425,7 +425,7 @@ int main(int argc, char * argv[])
         __u32 bytes_avail;
         char fname[30];
         __u8 frame[640*480];
-        int n = wait_buffer_ready(fd, &bytes_avail); 
+        int n = wait_buffer_ready(fd, &bytes_avail);
         int max_val = 0;
         snprintf(fname, sizeof(fname), "image_%i.pgm", i);
         LOG_INFO("%i %u", n, bytes_avail);

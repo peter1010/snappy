@@ -21,4 +21,4 @@ capture: $(OBJS)
 	@mv $*.P $*.d
 
 
--include $(OBJS:.o=.d) 
+-include $(OBJS:.o=.d)
