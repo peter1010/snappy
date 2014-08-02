@@ -402,7 +402,7 @@ static void print_capture_format(struct v4l2_pix_format * pix)
     LOG_INFO("Image size %u", pix->sizeimage);
 }
 
-static void set_format(const Camera_t * info)
+static void set_format(Camera_t * info)
 {
     struct v4l2_format fmt;
     memset(&fmt, 0, sizeof(fmt));
@@ -431,6 +431,9 @@ static void set_format(const Camera_t * info)
     }
     print_capture_format(pix);
  
+    info->height = pix->height;
+    info->width = pix->width;
+
 //    memset(&fmt, 0, sizeof(fmt));
 //    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
 //    retVal = ioctl(fd, VIDIOC_G_FMT, &fmt);
@@ -695,8 +698,10 @@ int main(int argc, char * argv[])
                 if(val > max_val)
                     max_val = val;
             }
-            fprintf(f, "P5\n640 480\n%i\n", max_val);
-
+            fprintf(f, "P5\n%i %i\n%i\n", info.width, info.height, max_val);
+            __u32 px = info.pix_fmt;
+            fprintf(f, "#FOURCC %c%c%c%c\n",
+                px & 0xff, (px >> 8) & 0xff, (px >> 16) & 0xff, (px >> 24) & 0xff);
             fwrite(frame, bytes_avail/2, 1, f);
             fclose(f);
         }
