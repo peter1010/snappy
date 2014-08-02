@@ -16,10 +16,15 @@ enum Log_Level_enum
     LOG_DEBUG_LVL
 };
 
-extern void set_logging_level(int level);
+extern void set_logging_level(unsigned level);
 
+#ifdef __BASE_FILE__
+static const char log_category[] = __BASE_FILE__;
+#define SET_LOG_CATEGORY
+#else
 /* Place this macro at top of all files that using logging */
 #define SET_LOG_CATEGORY static const char log_category[] = __FILE__
+#endif
 
 /* Use these macros to log messages for different levels */
 #define LOG_ERROR(...) log_msg(log_category, __LINE__, LOG_ERROR_LVL, __VA_ARGS__)
