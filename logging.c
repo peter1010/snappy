@@ -5,9 +5,27 @@
 
 #include "logging.h"
 
+#ifdef LOG_TIMESTAMP
+#    include <time.h>
+#endif
+
+
+
 static unsigned log_level = LOG_WARN_LVL;
-static bool log_append_allowed = false;
-static FILE * log_out = NULL;
+FILE * log_out = NULL;
+
+struct Logger_s
+{
+#ifdef LOG_TIMESTAMP
+    struct timespec ts;
+#endif
+    const char * category;
+};
+
+typedef struct Logger_s Logger_t;
+
+Logger_t log_info;
+
 
 /**
  * Initialiser the logger by opening the output stream
@@ -38,21 +56,23 @@ void set_logging_level(unsigned level)
  *
  * @param[in] category (usually the source file name)
  * @param[in] level
- * 
+ *
  * @return True if log, false if not
  */
-bool open_logger(const char * category, unsigned level)
+void * open_logger(const char * category, unsigned level)
 {
     if(level <= log_level)
     {
+#ifdef LOG_TIMESTAMP
+        clock_gettime(CLOCK_MONOTONIC, &log_info.ts);
+#endif
         log_init();
-        fprintf(log_out, "[%s", category);
-        return true;
+        log_info.category = category;
+        return (void *) &log_info;
     }
     else
     {
-        log_append_allowed = false;
-        return false;
+        return 0;
     }
 }
 
@@ -66,45 +86,49 @@ bool open_logger(const char * category, unsigned level)
  * @param[in] fmt The format string in the style of printf
  * @param[in] args Variable args
  */
-void log_msg(int line, const char * fmt, ...)
+void log_msg(void * hnd, int line, const char * fmt, ...)
 {
+    Logger_t * info = (Logger_t *)hnd;
     va_list ap;
     va_start(ap, fmt);
 
-    fprintf(log_out, ":%i] ", line);
+#ifdef LOG_TIMESTAMP
+    fprintf(log_out, "%u.%03li [%s:%i] ",
+        (unsigned)info->ts.tv_sec,
+        info->ts.tv_nsec/1000000,
+        info->category,
+        line
+    );
+#else
+    fprintf(log_out, "[%s:%i] ", info->category, line);
+#endif
     vfprintf(log_out, fmt, ap);
     fputs("\n", log_out);
 
     va_end(ap);
-    log_append_allowed = true;
 }
 
-void log_errno(int line, const char * fmt, ...)
+void log_errno(void * hnd, int line, const char * fmt, ...)
 {
+    Logger_t * info = (Logger_t *)hnd;
     va_list ap;
     va_start(ap, fmt);
 
-    fprintf(log_out, ":%i] ", line);
+#ifdef LOG_TIMESTAMP
+    fprintf(log_out, "%u.%03li [%s:%i] ",
+        (unsigned)info->ts.tv_sec,
+        info->ts.tv_nsec/1000000,
+        info->category,
+        line
+    );
+#else
+    fprintf(log_out, "[%s:%i] ", info->category, line);
+#endif
     vfprintf(log_out, fmt, ap);
     fputs(":", log_out);
     fputs(strerror(errno), log_out);
     fputs("\n", log_out);
 
     va_end(ap);
-    log_append_allowed = true;
 }
 
-void log_msg_append(const char * fmt, ...)
-{
-    if(log_append_allowed)
-    {
-        va_list ap;
-        va_start(ap, fmt);
-
-        fputs("\t", log_out);
-        vfprintf(log_out, fmt, ap);
-        fputs("\n", log_out);
-
-        va_end(ap);
-    }
-}
