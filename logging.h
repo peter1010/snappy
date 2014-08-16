@@ -1,6 +1,8 @@
 #ifndef _LOGGING_H_
 #define _LOGGING_H_
 
+#include <stdbool.h>
+
 /**
  * Some Logging code
  */
@@ -26,31 +28,40 @@ static const char log_category[] = __BASE_FILE__;
 #define SET_LOG_CATEGORY static const char log_category[] = __FILE__
 #endif
 
-/* Use these macros to log messages for different levels */
-#define LOG_ERROR(...) log_msg(log_category, __LINE__, LOG_ERROR_LVL, __VA_ARGS__)
-#define LOG_WARN(...)  log_msg(log_category, __LINE__, LOG_WARN_LVL,  __VA_ARGS__)
-#define LOG_INFO(...)  log_msg(log_category, __LINE__, LOG_INFO_LVL,  __VA_ARGS__)
-#define LOG_DEBUG(...) log_msg(log_category, __LINE__, LOG_DEBUG_LVL, __VA_ARGS__)
+#define _LOG_MSG(cat, level, ...) \
+    do { if(open_logger(cat, level)) \
+            log_msg(__LINE__, __VA_ARGS__); \
+    } while(0)
 
-#define LOG_ERRNO_AS_ERROR(...) log_errno(log_category, __LINE__, LOG_ERROR_LVL, __VA_ARGS__)
+#define _LOG_ERRNO(cat, level, ...)\
+    do { if(open_logger(cat, level)) \
+            log_errno(__LINE__, __VA_ARGS__); \
+    } while(0)
+
+/* Use these macros to log messages for different levels */
+#define LOG_ERROR(...) _LOG_MSG(log_category, LOG_ERROR_LVL, __VA_ARGS__)
+#define LOG_WARN(...)  _LOG_MSG(log_category, LOG_WARN_LVL,  __VA_ARGS__)
+#define LOG_INFO(...)  _LOG_MSG(log_category, LOG_INFO_LVL,  __VA_ARGS__)
+#define LOG_DEBUG(...) _LOG_MSG(log_category, LOG_DEBUG_LVL, __VA_ARGS__)
+
+#define LOG_ERRNO_AS_ERROR(...) _LOG_ERRNO(log_category, LOG_ERROR_LVL, __VA_ARGS__)
 
 /* Append additional info to previous log message */
 #define LOG_APPEND(...) log_msg_append(__VA_ARGS__)
 
+extern bool open_logger(const char * category, unsigned level);
+
 extern void log_msg(
-    const char * category,
     int line,
-    unsigned level,
     const char * fmt,
-    ...) __attribute__((format (printf, 4, 5)));
+    ...) __attribute__((format (printf, 2, 3)));
 
 
 extern void log_errno(
-    const char * category,
     int line,
-    unsigned level,
     const char * fmt,
-    ...) __attribute__((format (printf, 4, 5)));
+    ...) __attribute__((format (printf, 2, 3)));
+
 
 extern void log_msg_append(
     const char * fmt,

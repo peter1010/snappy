@@ -599,7 +599,7 @@ static int check_quality(Camera_t * info, int n, int left, __u32 bytes_avail)
     __u64 luma_sum = 0;
 
     __u8 * src = info->buf_starts[n];
-    int j;
+    unsigned j;
     for(j = 0; j < bytes_avail/2; j++)
     {
         __u8 val = *src++;
@@ -689,7 +689,7 @@ int main(int argc, char * argv[])
         {
             __u8 * src = info.buf_starts[n];
             __u8 * dst = frame;
-            int j;
+            unsigned j;
             for(j = 0; j < bytes_avail/2; j++)
             {
                 __u8 val = *src++;
