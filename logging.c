@@ -19,7 +19,6 @@ struct Logger_s
 #ifdef LOG_TIMESTAMP
     struct timespec ts;
 #endif
-    const char * category;
 };
 
 typedef struct Logger_s Logger_t;
@@ -54,12 +53,11 @@ void set_logging_level(unsigned level)
  * Open the logger, called before each log call, it also tests if we want to
  * log. If logging, then the initial message prefix is sent.
  *
- * @param[in] category (usually the source file name)
  * @param[in] level
  *
  * @return True if log, false if not
  */
-void * open_logger(const char * category, unsigned level)
+void * open_logger(unsigned level)
 {
     if(level <= log_level)
     {
@@ -67,7 +65,6 @@ void * open_logger(const char * category, unsigned level)
         clock_gettime(CLOCK_MONOTONIC, &log_info.ts);
 #endif
         log_init();
-        log_info.category = category;
         return (void *) &log_info;
     }
     else
@@ -80,27 +77,21 @@ void * open_logger(const char * category, unsigned level)
 /**
  * Log a message
  *
- * @param[in] filename Name of file that log was called from
- * @param[in] line Line number where log called from
- * @param[in] level The level
+ * @param[in] hnd The handle to the logger
  * @param[in] fmt The format string in the style of printf
  * @param[in] args Variable args
  */
-void log_msg(void * hnd, int line, const char * fmt, ...)
+void log_msg(void * hnd, const char * fmt, ...)
 {
     Logger_t * info = (Logger_t *)hnd;
     va_list ap;
     va_start(ap, fmt);
 
 #ifdef LOG_TIMESTAMP
-    fprintf(log_out, "%u.%03li [%s:%i] ",
+    fprintf(log_out, "%u.%03li ",
         (unsigned)info->ts.tv_sec,
-        info->ts.tv_nsec/1000000,
-        info->category,
-        line
+        info->ts.tv_nsec/1000000
     );
-#else
-    fprintf(log_out, "[%s:%i] ", info->category, line);
 #endif
     vfprintf(log_out, fmt, ap);
     fputs("\n", log_out);
@@ -108,21 +99,25 @@ void log_msg(void * hnd, int line, const char * fmt, ...)
     va_end(ap);
 }
 
-void log_errno(void * hnd, int line, const char * fmt, ...)
+
+/**
+ * Log a message with errno included
+ *
+ * @param[in] hnd The handle to the logger
+ * @param[in] fmt The format string in the style of printf
+ * @param[in] args Variable args
+ */
+void log_errno(void * hnd, const char * fmt, ...)
 {
     Logger_t * info = (Logger_t *)hnd;
     va_list ap;
     va_start(ap, fmt);
 
 #ifdef LOG_TIMESTAMP
-    fprintf(log_out, "%u.%03li [%s:%i] ",
+    fprintf(log_out, "%u.%03li ",
         (unsigned)info->ts.tv_sec,
-        info->ts.tv_nsec/1000000,
-        info->category,
-        line
+        info->ts.tv_nsec/1000000
     );
-#else
-    fprintf(log_out, "[%s:%i] ", info->category, line);
 #endif
     vfprintf(log_out, fmt, ap);
     fputs(":", log_out);

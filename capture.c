@@ -11,8 +11,6 @@
 #include "debug.h"
 #include "capture.h"
 
-SET_LOG_CATEGORY;
-
 #define MAX_INPUTS (100)
 #define MAX_STANDARDS (100)
 #define MAX_FORMATS (100)
