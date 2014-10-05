@@ -41,6 +41,7 @@ static PyObject * Words_new(PyTypeObject * type, PyObject * args, PyObject * kwd
         self->word_lists[i] = 0;
     }
     self->data_buf = 0;
+    return self;
 }
 
 

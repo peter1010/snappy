@@ -9,8 +9,6 @@
 #    include <time.h>
 #endif
 
-
-
 static unsigned log_level = LOG_WARN_LVL;
 FILE * log_out = NULL;
 
@@ -29,7 +27,7 @@ Logger_t log_info;
 /**
  * Initialiser the logger by opening the output stream
  */
-void log_init()
+static void log_init(void)
 {
     if(!log_out)
     {

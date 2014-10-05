@@ -20,13 +20,15 @@ static const char * list2str(const char * items[], int num_items)
     {
         int i;
         int size = 0;
+        char * p;
+
         for(i=0; i<num_items; i++)
         {
             size += (2 + strlen(items[i]));
         }
         free(tmp);
         tmp = (char *) malloc(size);
-        char * p = tmp;
+        p = tmp;
         for(i=0; i<num_items; i++)
         {
             strcpy(p, items[i]);

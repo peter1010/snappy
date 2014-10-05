@@ -25,8 +25,11 @@
 static __u32 check_capabilities(Camera_t * info)
 {
     struct v4l2_capability cap;
+    __u32 caps;
+    int retVal;
+
     memset(&cap, 0, sizeof(cap));
-    int retVal = ioctl(info->fd, VIDIOC_QUERYCAP, &cap);
+    retVal = ioctl(info->fd, VIDIOC_QUERYCAP, &cap);
     if(retVal == -1)
     {
         LOG_WARN("Couldnt get Capabilities");
@@ -36,7 +39,7 @@ static __u32 check_capabilities(Camera_t * info)
     LOG_INFO("%.16s, Card: %.32s, ver: 0x%x, bus: %.32s",
             cap.driver, cap.card, cap.version, cap.bus_info);
 
-    __u32 caps = cap.capabilities;
+    caps = cap.capabilities;
     LOG_INFO("Card capabilites are 0x%X (%s)",
             caps, cap2str(caps));
 
@@ -69,9 +72,11 @@ static void check_standards(Camera_t * info)
     int i;
     for(i = 0; i < MAX_STANDARDS; i++)
     {
+        int retVal;
+
         memset(&standard, 0, sizeof(standard));
         standard.index = i;
-        int retVal = ioctl(info->fd, VIDIOC_ENUMSTD, &standard);
+        retVal = ioctl(info->fd, VIDIOC_ENUMSTD, &standard);
         if(retVal == -1)
         {
             LOG_ERRNO_AS_ERROR("VIDIOC_ENUMSTD");
@@ -171,12 +176,14 @@ static __s32 get_control_value(Camera_t * info, int id)
         return setting.value;
     }
 }
- 
- 
+
+
 static void set_control(Camera_t * info, int id, float percent)
 {
     struct v4l2_queryctrl control;
     int retVal;
+    __u32 range;
+    __s32 new_value;
 
     memset(&control, 0, sizeof(control));
     control.id = id;
@@ -186,8 +193,8 @@ static void set_control(Camera_t * info, int id, float percent)
         LOG_ERRNO_AS_ERROR("VIDIOC_QUERYCTRL");
         return;
     }
-    __u32 range = control.maximum - control.minimum;
-    __s32 new_value = control.minimum 
+    range = control.maximum - control.minimum;
+    new_value = control.minimum
             + control.step * (__s32)(0.5 + (range * percent)/control.step);
     if(new_value < control.minimum)
         new_value = control.minimum;
@@ -196,7 +203,7 @@ static void set_control(Camera_t * info, int id, float percent)
 
     set_control_value(info, id, new_value);
 }
- 
+
 static void check_controls(Camera_t * info)
 {
     struct v4l2_queryctrl control;
@@ -205,6 +212,7 @@ static void check_controls(Camera_t * info)
     for(i = 0; i < 100; i++)
     {
         int retVal;
+        __s32 value;
 
         memset(&control, 0, sizeof(control));
         control.id = id | V4L2_CTRL_FLAG_NEXT_CTRL;
@@ -218,7 +226,7 @@ static void check_controls(Camera_t * info)
         LOG_INFO("Control 0x%X (%.24s)", id, control.name);
         LOG_INFO("Control type: %s", ctrlType2str(control.type));
 
-        __s32 value = get_control_value(info, id);
+        value = get_control_value(info, id);
         LOG_INFO("Control min=%i, max=%i, step=%i, default=%i, actual=%i",
                 control.minimum, control.maximum, control.step, control.default_value,
                 value);
@@ -289,7 +297,7 @@ static void check_controls(Camera_t * info)
 }
 
 /**
- * Check and select camera input 
+ * Check and select camera input
  */
 static void check_input(Camera_t * info)
 {
@@ -297,9 +305,11 @@ static void check_input(Camera_t * info)
     int i;
     for(i = 0; i < MAX_INPUTS; i++)
     {
+        int retVal;
+
         memset(&input, 0, sizeof(input));
         input.index = i;
-        int retVal = ioctl(info->fd, VIDIOC_ENUMINPUT, &input);
+        retVal = ioctl(info->fd, VIDIOC_ENUMINPUT, &input);
         if(retVal == -1)
         {
             break;
@@ -337,7 +347,7 @@ static void check_format(Camera_t * info)
 	V4L2_BUF_TYPE_SLICED_VBI_CAPTURE,
 	V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
     };
- 
+
     struct v4l2_fmtdesc desc;
     unsigned i;
     unsigned j;
@@ -347,11 +357,13 @@ static void check_format(Camera_t * info)
         /* Lets stop after a large number of formats (v unlikely) */
         for(i = 0; i < MAX_FORMATS; i++)
         {
+            int retVal;
+
             memset(&desc, 0, sizeof(desc));
             desc.index = i;
             desc.type = buf_types[j];
 
-            int retVal = ioctl(info->fd, VIDIOC_ENUM_FMT, &desc);
+            retVal = ioctl(info->fd, VIDIOC_ENUM_FMT, &desc);
             if(retVal == -1)
             {
                 break;
@@ -373,9 +385,11 @@ static void set_capture_params(const Camera_t * info)
 {
     struct v4l2_streamparm params;
     struct v4l2_captureparm * capture = &params.parm.capture;
+    int retVal;
+
     memset(&params, 0, sizeof(params));
     params.type = info->buf_type;
-    int retVal = ioctl(info->fd, VIDIOC_G_PARM, &params);
+    retVal = ioctl(info->fd, VIDIOC_G_PARM, &params);
     if(retVal == -1)
     {
         LOG_ERRNO_AS_ERROR("VIDIOC_G_PARM");
@@ -403,14 +417,18 @@ static void print_capture_format(struct v4l2_pix_format * pix)
 static void set_format(Camera_t * info)
 {
     struct v4l2_format fmt;
+    struct v4l2_pix_format * pix;
+    int retVal;
+
     memset(&fmt, 0, sizeof(fmt));
     fmt.type = info->buf_type;
-    int retVal = ioctl(info->fd, VIDIOC_G_FMT, &fmt);
+
+    retVal = ioctl(info->fd, VIDIOC_G_FMT, &fmt);
     if(retVal == -1)
     {
         return;
     }
-    struct v4l2_pix_format * pix = &fmt.fmt.pix;
+    pix = &fmt.fmt.pix;
     print_capture_format(pix);
 
     pix->sizeimage = pix->height * pix->bytesperline;
@@ -428,7 +446,7 @@ static void set_format(Camera_t * info)
         return;
     }
     print_capture_format(pix);
- 
+
     info->height = pix->height;
     info->width = pix->width;
 
@@ -482,7 +500,7 @@ static int request_buffers(Camera_t * info, int max_num)
             LOG_ERROR("Failed to get buffer details");
             exit(EXIT_FAILURE);
         }
-        start = mmap(NULL, buffer.length, PROT_READ | PROT_WRITE, MAP_SHARED, 
+        start = mmap(NULL, buffer.length, PROT_READ | PROT_WRITE, MAP_SHARED,
                      info->fd, buffer.m.offset);
         if(start == MAP_FAILED)
         {
@@ -531,13 +549,14 @@ static void disable_capture(const Camera_t * info)
 static void queue_buffer(const Camera_t * info, int i)
 {
     struct v4l2_buffer buffer;
+    int status;
 
     memset(&buffer, 0, sizeof(buffer));
     buffer.type = info->buf_type;
     buffer.memory = V4L2_MEMORY_MMAP;
     buffer.index = i;
 
-    const int status = ioctl(info->fd, VIDIOC_QBUF, &buffer);
+    status = ioctl(info->fd, VIDIOC_QBUF, &buffer);
     if(status == -1)
     {
         LOG_ERROR("Failed to get buffer details");
@@ -553,13 +572,14 @@ static void queue_buffer(const Camera_t * info, int i)
 static __u32 query_buffer(Camera_t * info, int i)
 {
     struct v4l2_buffer buffer;
+    int status;
 
     memset(&buffer, 0, sizeof(buffer));
     buffer.type = info->buf_type;
     buffer.memory = V4L2_MEMORY_MMAP;
     buffer.index = i;
 
-    const int status = ioctl(info->fd, VIDIOC_QBUF, &buffer);
+    status = ioctl(info->fd, VIDIOC_QBUF, &buffer);
     if(status == -1)
     {
         LOG_ERROR("Failed to get buffer details");
@@ -574,12 +594,13 @@ static __u32 query_buffer(Camera_t * info, int i)
 static int wait_buffer_ready(Camera_t * info, __u32 * bytes_avail)
 {
     struct v4l2_buffer buffer;
+    int status;
 
     memset(&buffer, 0, sizeof(buffer));
     buffer.type = info->buf_type;
     buffer.memory = V4L2_MEMORY_MMAP;
 
-    const int status = ioctl(info->fd, VIDIOC_DQBUF, &buffer);
+    status = ioctl(info->fd, VIDIOC_DQBUF, &buffer);
     if(status == -1)
     {
         LOG_ERROR("Failed to get buffer details");
@@ -595,9 +616,10 @@ static int check_quality(Camera_t * info, int n, int left, __u32 bytes_avail)
     unsigned int min_luma = 255;
     unsigned int max_luma = 0;
     __u64 luma_sum = 0;
-
+    int luma_mean;
     __u8 * src = info->buf_starts[n];
     unsigned j;
+
     for(j = 0; j < bytes_avail/2; j++)
     {
         __u8 val = *src++;
@@ -612,8 +634,8 @@ static int check_quality(Camera_t * info, int n, int left, __u32 bytes_avail)
         }
         luma_sum += val;
     }
-    int luma_mean = (int)(2*(luma_sum/bytes_avail));
-    LOG_INFO("Luma, min=%i, max=%i, mean=%i", min_luma, max_luma, 
+    luma_mean = (int)(2*(luma_sum/bytes_avail));
+    LOG_INFO("Luma, min=%i, max=%i, mean=%i", min_luma, max_luma,
             luma_mean);
     if(luma_mean > 128)
     {
@@ -631,6 +653,8 @@ int main(int argc, char * argv[])
     Camera_t info;
     int fd;
     int i;
+    int n;
+    __u32 capability;
 
     set_logging_level(5);
 
@@ -643,7 +667,7 @@ int main(int argc, char * argv[])
     }
     info.fd = fd;
 
-    __u32 capability = check_capabilities(&info);
+    capability = check_capabilities(&info);
     if(capability == 0)
     {
         return 1;
@@ -660,7 +684,7 @@ int main(int argc, char * argv[])
     set_format(&info);
 
 
-    int n = request_buffers(&info, 10);
+    n = request_buffers(&info, 10);
     for(i = 0; i < n; i++)
     {
         queue_buffer(&info, i);
@@ -673,20 +697,23 @@ int main(int argc, char * argv[])
         __u32 bytes_avail;
         int n = wait_buffer_ready(&info, &bytes_avail);
         int max_val = 0;
+        char fname[30];
+        __u8 frame[640*480];
+        FILE * f;
+
         if(!check_quality(&info, n, 99-i, bytes_avail))
         {
             queue_buffer(&info, n);
             continue;
         }
-        char fname[30];
-        __u8 frame[640*480];
         snprintf(fname, sizeof(fname), "image.pgm");
         LOG_INFO("%i %u", n, bytes_avail);
-        FILE * f = fopen(fname, "wb");
+        f = fopen(fname, "wb");
         if(f)
         {
             __u8 * src = info.buf_starts[n];
             __u8 * dst = frame;
+            __u32 px;
             unsigned j;
             for(j = 0; j < bytes_avail/2; j++)
             {
@@ -697,7 +724,7 @@ int main(int argc, char * argv[])
                     max_val = val;
             }
             fprintf(f, "P5\n%i %i\n%i\n", info.width, info.height, max_val);
-            __u32 px = info.pix_fmt;
+            px = info.pix_fmt;
             fprintf(f, "#FOURCC %c%c%c%c\n",
                 px & 0xff, (px >> 8) & 0xff, (px >> 16) & 0xff, (px >> 24) & 0xff);
             fwrite(frame, bytes_avail/2, 1, f);
