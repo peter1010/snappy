@@ -94,7 +94,7 @@ const char * cap2str(__u32 caps)
         { V4L2_CAP_STREAMING, "streaming I/O"},
         { V4L2_CAP_DEVICE_CAPS, "sets device capabilities field"},
     };
-    return do_mask_lookup(caps, lookup, 
+    return do_mask_lookup(caps, lookup,
             sizeof(lookup)/sizeof(struct MaskLookup_s));
 }
 
@@ -108,7 +108,7 @@ static const char * do_val_lookup(int val,
     }
     return "Unknown";
 }
- 
+
 /**
  *  Covert input type to a string
  */
@@ -118,7 +118,7 @@ const char * inputType2str(int typ)
         { V4L2_INPUT_TYPE_TUNER, "Tuner"},
         { V4L2_INPUT_TYPE_CAMERA, "Camera"},
     };
-    return do_val_lookup(typ, lookup, 
+    return do_val_lookup(typ, lookup,
             sizeof(lookup)/sizeof(struct ValLookup_s));
 }
 
@@ -137,7 +137,7 @@ const char * bufType2str(int typ)
         { V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE, "Output-Mplane" },
 //      { V4L2_BUF_TYPE_SDR_CAPTURE, "SDR-Capture"},
     };
-    return do_val_lookup(typ, lookup, 
+    return do_val_lookup(typ, lookup,
             sizeof(lookup)/sizeof(struct ValLookup_s));
 }
 
@@ -154,7 +154,7 @@ const char * ctrlType2str(int typ)
         { V4L2_CTRL_TYPE_BITMASK, "Bitmask"},
         { V4L2_CTRL_TYPE_INTEGER_MENU, "Integer_menu"},
     };
-    return do_val_lookup(typ, lookup, 
+    return do_val_lookup(typ, lookup,
             sizeof(lookup)/sizeof(struct ValLookup_s));
 }
 
@@ -171,7 +171,7 @@ const char * ctrlFlag2str(__u32 flags)
         { V4L2_CTRL_FLAG_WRITE_ONLY, "Write Only"},
         { V4L2_CTRL_FLAG_VOLATILE, "Volatile"},
     };
-    return do_mask_lookup(flags, lookup, 
+    return do_mask_lookup(flags, lookup,
             sizeof(lookup)/sizeof(struct MaskLookup_s));
 }
 
@@ -181,7 +181,7 @@ const char * fmtdescflag2str(__u32 flags)
         { V4L2_FMT_FLAG_COMPRESSED, "Compressed"},
         { V4L2_FMT_FLAG_EMULATED, "Emulated"},
     };
-    return do_mask_lookup(flags, lookup, 
+    return do_mask_lookup(flags, lookup,
             sizeof(lookup)/sizeof(struct MaskLookup_s));
 }
 
@@ -198,7 +198,7 @@ const char * colorspace2str(int space)
         { V4L2_COLORSPACE_JPEG, "JPEG"},
         { V4L2_COLORSPACE_SRGB, "SRGB"},
     };
-    return do_val_lookup(space, lookup, 
+    return do_val_lookup(space, lookup,
             sizeof(lookup)/sizeof(struct ValLookup_s));
 }
 
@@ -218,7 +218,7 @@ const char * capcap2str(__u32 mode)
         { V4L2_MODE_HIGHQUALITY, "HighQuality"},
         { V4L2_CAP_TIMEPERFRAME, "TimePerFrame"},
     };
-    return do_mask_lookup(mode, lookup, 
+    return do_mask_lookup(mode, lookup,
             sizeof(lookup)/sizeof(struct MaskLookup_s));
 }
 

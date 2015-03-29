@@ -20,25 +20,24 @@ class Camera_error : std::exception
 {
 };
 
+/**
+ * Constructor a Camera object
+ */
 Camera::Camera()
     : m_fd(0), m_buf_type(0), m_width(0), m_height(0), m_pix_fmt(0),
       m_buf_starts(0), m_buf_lengths(0), m_num_bufs(0), m_brightness(0),
       m_contrast(0)
 {
     const int fd = open("/dev/video0", O_RDWR);
-    if(fd < 0)
-    {
+    if(fd < 0) {
         LOG_ERROR("Open failed");
         throw Camera_error();
-//        exit(EXIT_FAILURE);
     }
     m_fd = fd;
 }
 
 /**
  * Check the capabilities of the device
- *
- * @param[in,out] info
  *
  * returns those capabilities
  */
@@ -80,7 +79,7 @@ uint32_t Camera::check_capabilities()
 }
 
 /*
- * Only applicable to tuner me thinks
+ * Only applicable to tuner me thinks, check the standards the camera supports
  */
 void Camera::check_standards()
 {
@@ -105,6 +104,9 @@ void Camera::check_standards()
 
 /**
  * Set a control value to 'value'
+ *
+ * @param[in] id The Id of the control
+ * @param[in] value The value to set it to
  */
 void Camera::set_control_value(int id, int32_t value)
 {
@@ -146,21 +148,27 @@ void Camera::set_control_value(int id, int32_t value)
 
 /**
  * Get the Control value
+ *
+ * @param[in] id The Control ID
+ *
+ * @return The value
  */
 int32_t Camera::get_control_value(int id)
 {
-    int retVal;
+    int32_t retVal = -1;
+
     if(V4L2_CTRL_ID2CLASS(id) == V4L2_CTRL_CLASS_USER) {
         /* Old-style 'user' controls */
         struct v4l2_control setting;
         memset(&setting, 0, sizeof(setting));
         setting.id = id;
-        retVal = ioctl(m_fd, VIDIOC_G_CTRL, &setting);
-        if(retVal == -1) {
+        const int status = ioctl(m_fd, VIDIOC_G_CTRL, &setting);
+        if(status == -1) {
             LOG_ERRNO_AS_ERROR("VIDIOC_G_CTRL");
-            return -1;
         }
-        return setting.value;
+        else {
+            retVal = setting.value;
+        }
     }
     else {
         /* New-style controls */
@@ -173,14 +181,15 @@ int32_t Camera::get_control_value(int id)
         container.controls = &setting;
         setting.id = id;
 	setting.size = 0;
-        retVal = ioctl(m_fd, VIDIOC_G_EXT_CTRLS, &setting);
-        if(retVal == -1)
-        {
+        const int status = ioctl(m_fd, VIDIOC_G_EXT_CTRLS, &setting);
+        if(status == -1) {
             LOG_ERRNO_AS_ERROR("VIDIOC_G_EXT_CTRLS");
-            return -1;
         }
-        return setting.value;
+        else {
+            retVal = setting.value;
+        }
     }
+    return retVal;
 }
 
 

@@ -29,8 +29,7 @@ Logger_t log_info;
  */
 static void log_init(void)
 {
-    if(!log_out)
-    {
+    if(!log_out) {
         log_out = stderr;
     }
 }
@@ -57,18 +56,16 @@ void set_logging_level(unsigned level)
  */
 void * open_logger(unsigned level)
 {
-    if(level <= log_level)
-    {
+    void * handle = NULL;
+
+    if(level <= log_level) {
 #ifdef LOG_TIMESTAMP
         clock_gettime(CLOCK_MONOTONIC, &log_info.ts);
 #endif
         log_init();
-        return (void *) &log_info;
+        handle = (void *) &log_info;
     }
-    else
-    {
-        return 0;
-    }
+    return handle;
 }
 
 
