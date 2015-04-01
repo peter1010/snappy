@@ -12,7 +12,7 @@ typedef struct {
 /**
  * The Deallocator
  */
-static void Words_dealloc(WordsObject * self)
+static void snappyDealloc(WordsObject * self)
 {
     int i;
     for(i = 0; i <= MAX_WORD_LEN; i++)
@@ -27,7 +27,7 @@ static void Words_dealloc(WordsObject * self)
 /**
  * The Allocator
  */
-static PyObject * Words_new(PyTypeObject * type, PyObject * args, PyObject * kwds)
+static PyObject * snappyNew(PyTypeObject * type, PyObject * args, PyObject * kwds)
 {
     int i;
     WordsObject * self = (WordsObject *)type->tp_alloc(type, 0);
@@ -91,7 +91,7 @@ static int read_words(FILE * fp, int * word_cnts, char * data_buf)
 /**
  * The Constructor
  */
-static int Words_init(WordsObject * self, PyObject * args, PyObject * kwds)
+static int snappyInit(WordsObject * self, PyObject * args, PyObject * kwds)
 {
     const char * filename;
     FILE * fp;
@@ -136,23 +136,23 @@ static int Words_init(WordsObject * self, PyObject * args, PyObject * kwds)
 }
 
 
-static PyMemberDef Words_members[] = {
+static PyMemberDef snappyMembers[] = {
     {NULL}  /* Sentinel */
 };
 
 
-static PyMethodDef Words_methods[] = {
+static PyMethodDef snappyMethods[] = {
     {NULL}  /* Sentinel */
 };
 
 
 
-static PyTypeObject WordsType = {
+static PyTypeObject SnappyType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "words.Words",       /* tp_name */
     sizeof(WordsObject), /* tp_basicsize */
     0,                          /* tp_itemsize */
-    (destructor) Words_dealloc, /* tp_dealloc */
+    (destructor) snappyDealloc, /* tp_dealloc */
     0,                          /* tp_print */
     0,                         /* tp_getattr */
     0,                         /* tp_setattr */
@@ -175,46 +175,46 @@ static PyTypeObject WordsType = {
     0,                         /* tp_weaklistoffset */
     0,                         /* tp_iter */
     0,                         /* tp_iternext */
-    Words_methods,             /* tp_methods */
-    Words_members,             /* tp_members */
+    snappyMethods,             /* tp_methods */
+    snappyMembers,             /* tp_members */
     0,                         /* tp_getset */
     0,                         /* tp_base */
     0,                         /* tp_dict */
     0,                         /* tp_descr_get */
     0,                         /* tp_descr_set */
     0,                         /* tp_dictoffset */
-    (initproc)Words_init,      /* tp_init */
+    (initproc)snappyInit,      /* tp_init */
     0,                         /* tp_alloc */
-    Words_new,                 /* tp_new */
+    snappyNew,                 /* tp_new */
 };
 
-static PyMethodDef WordsMethods[] = {
+static PyMethodDef snappyFunctions[] = {
     {NULL, NULL, 0, NULL}    /* Sentinel */
 };
 
-static struct PyModuleDef wordsmodule = {
+static struct PyModuleDef snappyModule = {
     PyModuleDef_HEAD_INIT,
     "words",    /* Name of module */
     NULL,       /* Module documentation */
     -1,         /* sizeof per-interpreter state */
-    WordsMethods
+    snappyFunctions
 };
 
-PyMODINIT_FUNC PyInit_words(void)
+PyMODINIT_FUNC PyInit_snappy(void)
 {
     PyObject * mod;
 
-    WordsType.tp_new = PyType_GenericNew;
-    if(PyType_Ready(&WordsType) < 0)
+    SnappyType.tp_new = PyType_GenericNew;
+    if(PyType_Ready(&SnappyType) < 0)
     {
         return NULL;
     }
-    mod = PyModule_Create(&wordsmodule);
+    mod = PyModule_Create(&snappyModule);
     if(mod == NULL)
     {
         return NULL;
     }
-    Py_INCREF(&WordsType);
-    PyModule_AddObject(mod, "Words", (PyObject *)&WordsType);
+    Py_INCREF(&SnappyType);
+    PyModule_AddObject(mod, "Words", (PyObject *)&SnappyType);
     return mod;
 }
