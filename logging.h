@@ -20,7 +20,28 @@ enum Log_Level_enum
     LOG_DEBUG_LVL
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void set_logging_level(unsigned level);
+
+extern void * open_logger(unsigned level);
+
+extern void log_msg(
+    void * hnd,
+    const char * fmt,
+    ...) __attribute__((format (printf, 2, 3)));
+
+
+extern void log_errno(
+    void * hnd,
+    const char * fmt,
+    ...) __attribute__((format (printf, 2, 3)));
+
+#ifdef __cplusplus
+};
+#endif 
 
 #define _LOG_MSG(level, ...) \
     do { void * hnd = open_logger(level); \
@@ -42,18 +63,5 @@ extern void set_logging_level(unsigned level);
 #define LOG_DEBUG(...) _LOG_MSG(LOG_DEBUG_LVL, __VA_ARGS__)
 
 #define LOG_ERRNO_AS_ERROR(...) _LOG_ERRNO(LOG_ERROR_LVL, __VA_ARGS__)
-
-extern void * open_logger(unsigned level);
-
-extern void log_msg(
-    void * hnd,
-    const char * fmt,
-    ...) __attribute__((format (printf, 2, 3)));
-
-
-extern void log_errno(
-    void * hnd,
-    const char * fmt,
-    ...) __attribute__((format (printf, 2, 3)));
 
 #endif

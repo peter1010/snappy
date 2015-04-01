@@ -15,8 +15,7 @@ typedef struct {
 static void snappyDealloc(WordsObject * self)
 {
     int i;
-    for(i = 0; i <= MAX_WORD_LEN; i++)
-    {
+    for(i = 0; i <= MAX_WORD_LEN; i++) {
         free(self->word_lists[i]);
         self->word_lists[i] = 0;
     }
@@ -31,13 +30,11 @@ static PyObject * snappyNew(PyTypeObject * type, PyObject * args, PyObject * kwd
 {
     int i;
     WordsObject * self = (WordsObject *)type->tp_alloc(type, 0);
-    if(self == NULL)
-    {
+    if(self == NULL) {
         return NULL;
     }
 
-    for(i = 0; i <= MAX_WORD_LEN; i++)
-    {
+    for(i = 0; i <= MAX_WORD_LEN; i++) {
         self->word_lists[i] = 0;
     }
     self->data_buf = 0;
@@ -58,25 +55,20 @@ static int read_words(FILE * fp, int * word_cnts, char * data_buf)
 {
     char lbuf[128];
     int num_words = 0;
-    while(fgets(lbuf, sizeof(lbuf), fp))
-    {
+    while(fgets(lbuf, sizeof(lbuf), fp)) {
         char * p = skip_spaces(&lbuf[0]);
         char * q;
         int word_len;
-        for(q=p; *q; q++)
-        {
-            if((*q >= 'a') && (*q <= 'z'))
-            {
+        for(q=p; *q; q++) {
+            if((*q >= 'a') && (*q <= 'z')) {
                 *q = *q - 'a' + 'A';
             }
-            else if((*q < 'A') || (*q > 'Z'))
-            {
+            else if((*q < 'A') || (*q > 'Z')) {
                 break;
             }
         }
         word_len = q-p;
-        if(word_len <= MAX_WORD_LEN)
-        {    
+        if(word_len <= MAX_WORD_LEN) {
             word_cnts[word_len]++;
             strncpy(data_buf, p, word_len);
             data_buf += word_len;
@@ -99,15 +91,13 @@ static int snappyInit(WordsObject * self, PyObject * args, PyObject * kwds)
     int word_cnts[MAX_WORD_LEN+1];
     int num_words;
 
-    if(!PyArg_ParseTuple(args, "s", &filename))
-    {
+    if(!PyArg_ParseTuple(args, "s", &filename)) {
         /* Exception raised by PyArg_ParseTuple */
         return -1;
     }
     //filename="Lexicon.txt"):
     fp = fopen(filename, "r");
-    if(fp == NULL)
-    {
+    if(fp == NULL) {
         PyErr_SetString(PyExc_FileExistsError, "Failed to open file");
         return -1;
     }
