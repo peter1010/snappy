@@ -23,17 +23,35 @@ class Camera_error : std::exception
 /**
  * Constructor a Camera object
  */
-Camera::Camera()
+Camera::Camera(std::string & devpath)
     : m_fd(0), m_buf_type(0), m_width(0), m_height(0), m_pix_fmt(0),
       m_buf_starts(0), m_buf_lengths(0), m_num_bufs(0), m_brightness(0),
-      m_contrast(0)
+      m_contrast(0), m_input(-1)
 {
-    const int fd = open("/dev/video0", O_RDWR);
+//    const int fd = open(devpath.c_str(), O_RDWR | O_NONBLOCK);
+    const int fd = open(devpath.c_str(), O_RDWR);
     if(fd < 0) {
-        LOG_ERROR("Open failed");
+        LOG_ERRNO_AS_ERROR("Open failed");
         throw Camera_error();
     }
     m_fd = fd;
+}
+
+/**
+ * Initialisation
+ *
+ * @return true if success
+ */
+bool Camera::init()
+{        
+    if(check_can_do_capture()) {
+        if(find_suitable_input()) {
+            if(set_input()) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 /**
@@ -41,7 +59,7 @@ Camera::Camera()
  *
  * returns those capabilities
  */
-uint32_t Camera::check_capabilities()
+bool Camera::check_can_do_capture() const
 {
     struct v4l2_capability cap;
     uint32_t caps;
@@ -51,7 +69,7 @@ uint32_t Camera::check_capabilities()
     retVal = ioctl(m_fd, VIDIOC_QUERYCAP, &cap);
     if(retVal == -1) {
         LOG_WARN("Couldnt get Capabilities");
-        return 0;
+        return false;
     }
 
     LOG_INFO("%.16s, Card: %.32s, ver: 0x%x, bus: %.32s",
@@ -69,13 +87,13 @@ uint32_t Camera::check_capabilities()
 
     if((caps & (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_VIDEO_CAPTURE_MPLANE)) == 0) {
         LOG_ERROR("Cant do video capture");
-        return 0;
+        return false;
     }
     if((caps & (V4L2_CAP_STREAMING)) == 0) {
         LOG_ERROR("Cant do video capture, wrong type of memory");
-        return 0;
+        return false;
     }
-    return caps;
+    return true;
 }
 
 /*
@@ -305,13 +323,11 @@ void Camera::check_controls()
     }
 }
 
-/**
- * Check and select camera input
- */
-void Camera::check_input()
+bool Camera::find_suitable_input()
 {
     struct v4l2_input input;
     int i;
+    m_input = -1;
     for(i = 0; i < MAX_INPUTS; i++) {
         int retVal;
 
@@ -321,29 +337,53 @@ void Camera::check_input()
         if(retVal == -1) {
             break;
         }
-        LOG_INFO("Input %u (%.32s)", input.index, input.name);
-        LOG_INFO("Input type: %s", inputType2str(input.type));
-        if(input.type == V4L2_INPUT_TYPE_TUNER) {
-            LOG_INFO("TODO - display tuner params");
+        if(input.type == V4L2_INPUT_TYPE_CAMERA) {
+            LOG_INFO("Input %u (%.32s)", input.index, input.name);
+            LOG_INFO("Input type: %s", inputType2str(input.type));
+            LOG_INFO("Input status: 0x%x", input.status);
+            LOG_INFO("Input cap: 0x%x", input.capabilities);
+            m_input = input.index;
         }
-        LOG_INFO("Input status: 0x%x", input.status);
-        LOG_INFO("Input cap: 0x%x", input.capabilities);
     }
-    {
-        int port;
-        int retVal = ioctl(m_fd, VIDIOC_G_INPUT, &port);
+    return m_input >= 0 ? true : false;
+}
+ 
+/**
+ * Check and select camera input
+ * 
+ * @return true if camera input selected.
+ */
+bool Camera::set_input()
+{
+    if(m_input < 0) {
+        return false;
+    }
+    int port;
+    int retVal = ioctl(m_fd, VIDIOC_G_INPUT, &port);
+    if(retVal == -1) {
+        return false;
+    }
+    LOG_INFO("Input selected is: %i", port);
+    if(port != m_input) {
+        port = m_input;
+        retVal = ioctl(m_fd, VIDIOC_S_INPUT, &port);
         if(retVal == -1) {
-            return;
+            m_input = port;
+            return false;
         }
-        LOG_INFO("Input selected is: %i", port);
+        retVal = ioctl(m_fd, VIDIOC_G_INPUT, &port);
+        if(retVal == -1) {
+            return false;
+        }
     }
+    return true;
 }
 
 /**
  * Check formats supported and go for the best, for now it picks the
  * first :)
  */
-void Camera::check_format()
+bool Camera::find_suitable_format()
 {
     /* There are 12 buffer types, but we are only interested in capture */
     static const int buf_types[] = {
@@ -357,6 +397,7 @@ void Camera::check_format()
     unsigned i;
     unsigned j;
     LOG_INFO("Check Formats");
+    m_buf_type = -1;
     for(j = 0; j < sizeof(buf_types)/sizeof(int); j++) {
         /* Lets stop after a large number of formats (v unlikely) */
         for(i = 0; i < MAX_FORMATS; i++) {
@@ -378,6 +419,7 @@ void Camera::check_format()
             m_pix_fmt = desc.pixelformat;
         }
     }
+    return m_buf_type >= 0 ? true: false;
 }
 
 /**
@@ -415,7 +457,13 @@ static void print_capture_format(struct v4l2_pix_format * pix)
     LOG_INFO("Image size %u", pix->sizeimage);
 }
 
-void Camera::set_format()
+/**
+ * Set the Format to that one previously selected by the call to
+ * find_suitable_format
+ *
+ * @return true on success
+ */
+bool Camera::set_format()
 {
     struct v4l2_format fmt;
     struct v4l2_pix_format * pix;
@@ -426,39 +474,42 @@ void Camera::set_format()
 
     retVal = ioctl(m_fd, VIDIOC_G_FMT, &fmt);
     if(retVal == -1) {
-        return;
+        return false;
     }
     pix = &fmt.fmt.pix;
     print_capture_format(pix);
 
     pix->sizeimage = pix->height * pix->bytesperline;
-
+    pix->pixelformat = m_pix_fmt;
+    
     retVal = ioctl(m_fd, VIDIOC_S_FMT, &fmt);
     if(retVal == -1) {
         LOG_ERRNO_AS_ERROR("VIDIOC_S_FMT");
-        return;
+        return false;
     }
 
     retVal = ioctl(m_fd, VIDIOC_G_FMT, &fmt);
     if(retVal == -1) {
-        return;
+        return false;
     }
     print_capture_format(pix);
 
-    m_height = pix->height;
+    m_pix_fmt = pix->pixelformat;
+//    m_formatObj = create_format_obj(m_pix_fmt);
+//    m_formatObj.set_dim(
     m_width = pix->width;
+    m_height = pix->height;
+    m_pix_fmt = pix->pixelformat;
+    m_bytesperline = pix->bytesperline;
+    return true;
+}
 
-//    memset(&fmt, 0, sizeof(fmt));
-//    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-//    retVal = ioctl(fd, VIDIOC_G_FMT, &fmt);
-//    if(retVal == -1)
-//    {
-//        return;
-//    }
-//    LOG_INFO("Res = %u x %u", fmt.fmt.pix_mp.width, fmt.fmt.pix_mp.height);
-//    uint32_t px = fmt.fmt.pix_mp.pixelformat;
-//    LOG_INFO("Format %s", pixelfmt2str(px));
-//    LOG_INFO("Field %u", fmt.fmt.pix_mp.field);
+bool Camera::select_format()
+{
+    if(find_suitable_format()) {
+        return set_format();
+    }
+    return false;
 }
 
 int Camera::request_buffers(int max_num)
@@ -599,7 +650,7 @@ int Camera::wait_buffer_ready(uint32_t * bytes_avail)
 
     status = ioctl(m_fd, VIDIOC_DQBUF, &buffer);
     if(status == -1) {
-        LOG_ERROR("Failed to get buffer details");
+        LOG_ERRNO_AS_ERROR("Failed to get buffer details");
         throw Camera_error();
 //        exit(EXIT_FAILURE);
     }
@@ -640,80 +691,8 @@ int Camera::check_quality(int n, int left, uint32_t bytes_avail)
     return left == 0;
 }
 
-int main(int argc, char * argv[])
+void Camera::close()
 {
-    Camera info;
-    int i;
-    int n;
-    uint32_t capability;
-
-    (void) argc;
-    (void) argv;
-
-    set_logging_level(5);
-
-    capability = info.check_capabilities();
-    if(capability == 0) {
-        return 1;
-    }
-
-    info.check_standards();
-
-    info.check_controls();
-
-    info.check_input();
-
-    info.check_format();
-
-    info.set_format();
-
-
-    n = info.request_buffers(10);
-    for(i = 0; i < n; i++) {
-        info.queue_buffer(i);
-    }
-
-    info.set_capture_params();
-    info.enable_capture();
-    for(i = 0; i < 100; i++) {
-        uint32_t bytes_avail;
-        int n = info.wait_buffer_ready(&bytes_avail);
-        int max_val = 0;
-        char fname[30];
-        uint8_t frame[640*480];
-        FILE * f;
-
-        if(!info.check_quality(n, 99-i, bytes_avail)) {
-            info.queue_buffer(n);
-            continue;
-        }
-        snprintf(fname, sizeof(fname), "image.pgm");
-        LOG_INFO("%i %u", n, bytes_avail);
-        f = fopen(fname, "wb");
-        if(f) {
-            uint8_t * src = info.buf_start(n);
-            uint8_t * dst = frame;
-            uint32_t px;
-            unsigned j;
-            for(j = 0; j < bytes_avail/2; j++) {
-                uint8_t val = *src++;
-                *dst++ = val;
-                src++;
-                if(val > max_val)
-                    max_val = val;
-            }
-            fprintf(f, "P5\n%i %i\n%i\n", info.width(), info.height(), max_val);
-            px = info.pix_fmt();
-            fprintf(f, "#FOURCC %c%c%c%c\n",
-                px & 0xff, (px >> 8) & 0xff, (px >> 16) & 0xff, (px >> 24) & 0xff);
-            fwrite(frame, bytes_avail/2, 1, f);
-            fclose(f);
-        }
-        break;
-    }
-    info.check_controls();
-    info.disable_capture();
-
-    info.close();
-    return 0;
+    ::close(m_fd);
+    m_fd=0;
 }

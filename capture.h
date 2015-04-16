@@ -1,7 +1,10 @@
 #ifndef _CAPTURE_H_
 #define _CAPTURE_H_
 
+#include <string>
+
 #include <stdint.h>
+#include <stdbool.h>
 
 struct Control_s
 {
@@ -23,6 +26,7 @@ private:
     unsigned m_width;
     unsigned m_height;
     uint32_t m_pix_fmt; /* The pixel format */
+    uint32_t m_bytesperline;
 
     uint8_t ** m_buf_starts;
     size_t * m_buf_lengths;
@@ -30,22 +34,30 @@ private:
     
     uint32_t m_brightness;
     uint32_t m_contrast;
+    int m_input;
 
 private:
     void set_control_value(int id, int32_t value);
     int32_t get_control_value(int id);
     void set_control(int id, float percent);
     uint32_t query_buffer(int i);
+    bool check_can_do_capture() const;
+    bool select_camera_input();
+    bool find_suitable_format();
+    bool find_suitable_input();
+    bool set_format();
+    bool set_input();
 
 public:
-    Camera();
+    Camera(std::string &);
+    bool init();
+    bool select_format();
+
     int check_quality(int n, int left, uint32_t bytes_avail);
     int request_buffers(int max_num);
     int wait_buffer_ready(uint32_t * bytes_avail);
-    void set_format();
-    uint32_t check_capabilities();
     void check_standards();
-    void close() {::close(m_fd); m_fd=0;};
+    void close();
     void check_controls();
     void disable_capture();
     unsigned height() const {return m_height;};

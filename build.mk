@@ -6,7 +6,7 @@ CCC=g++ -c
 MAKEDEPEND=gcc -M $(CPPFLAGS)
 LINK=gcc $(LDFLAGS)
 
-OBJS= capture.o logging.o debug.o
+OBJS= capture.o logging.o debug.o main.o
 
 .PHONY: all
 all: capture
