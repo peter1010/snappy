@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "capture.h"
+#include "format.h"
 #include "logging.h"
 
 #define V4L2_MAJOR  (81)
@@ -137,7 +138,6 @@ int main()
         if(f) {
             uint8_t * src = cam->buf_start(n);
             uint8_t * dst = frame;
-            uint32_t px;
             unsigned j;
             for(j = 0; j < bytes_avail/2; j++) {
                 uint8_t val = *src++;
@@ -147,9 +147,7 @@ int main()
                     max_val = val;
             }
             fprintf(f, "P5\n%i %i\n%i\n", cam->width(), cam->height(), max_val);
-            px = cam->pix_fmt();
-            fprintf(f, "#FOURCC %c%c%c%c\n",
-                px & 0xff, (px >> 8) & 0xff, (px >> 16) & 0xff, (px >> 24) & 0xff);
+            fprintf(f, "#FOURCC %s\n", cam->fmt()->pix_fmt_str().c_str());
             fwrite(frame, bytes_avail/2, 1, f);
             fclose(f);
         }

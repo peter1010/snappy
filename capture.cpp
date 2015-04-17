@@ -11,6 +11,8 @@
 #include "logging.h"
 #include "debug.h"
 #include "capture.h"
+#include "format.h"
+#include "control.h"
 
 #define MAX_INPUTS (100)
 #define MAX_STANDARDS (100)
@@ -24,7 +26,7 @@ class Camera_error : std::exception
  * Constructor a Camera object
  */
 Camera::Camera(std::string & devpath)
-    : m_fd(0), m_buf_type(0), m_width(0), m_height(0), m_pix_fmt(0),
+    : m_fd(0), m_buf_type(0), m_formatObj(0),
       m_buf_starts(0), m_buf_lengths(0), m_num_bufs(0), m_brightness(0),
       m_contrast(0), m_input(-1)
 {
@@ -35,6 +37,12 @@ Camera::Camera(std::string & devpath)
         throw Camera_error();
     }
     m_fd = fd;
+}
+
+Camera::~Camera()
+{
+    delete m_formatObj;
+    delete m_brightness;
 }
 
 /**
@@ -280,7 +288,7 @@ void Camera::check_controls()
         LOG_INFO("Control flags=0x%X, %s", control.flags, ctrlFlag2str(control.flags));
 
         if(id == V4L2_CID_BRIGHTNESS) {
-            m_brightness = id;
+            m_brightness = create_control(id, control.type);
         }
 
 //        switch(id)
@@ -383,7 +391,7 @@ bool Camera::set_input()
  * Check formats supported and go for the best, for now it picks the
  * first :)
  */
-bool Camera::find_suitable_format()
+uint32_t Camera::find_suitable_format()
 {
     /* There are 12 buffer types, but we are only interested in capture */
     static const int buf_types[] = {
@@ -416,10 +424,10 @@ bool Camera::find_suitable_format()
             LOG_INFO("Format %s", pixelfmt2str(desc.pixelformat));
             LOG_INFO("Fmt flags: 0x%x (%s)", desc.flags, fmtdescflag2str(desc.flags));
             m_buf_type = desc.type;
-            m_pix_fmt = desc.pixelformat;
+            return desc.pixelformat;
         }
     }
-    return m_buf_type >= 0 ? true: false;
+    return 0;
 }
 
 /**
@@ -463,7 +471,7 @@ static void print_capture_format(struct v4l2_pix_format * pix)
  *
  * @return true on success
  */
-bool Camera::set_format()
+bool Camera::set_format(uint32_t pixelformat)
 {
     struct v4l2_format fmt;
     struct v4l2_pix_format * pix;
@@ -480,7 +488,7 @@ bool Camera::set_format()
     print_capture_format(pix);
 
     pix->sizeimage = pix->height * pix->bytesperline;
-    pix->pixelformat = m_pix_fmt;
+    pix->pixelformat = pixelformat;
     
     retVal = ioctl(m_fd, VIDIOC_S_FMT, &fmt);
     if(retVal == -1) {
@@ -494,20 +502,17 @@ bool Camera::set_format()
     }
     print_capture_format(pix);
 
-    m_pix_fmt = pix->pixelformat;
-//    m_formatObj = create_format_obj(m_pix_fmt);
-//    m_formatObj.set_dim(
-    m_width = pix->width;
-    m_height = pix->height;
-    m_pix_fmt = pix->pixelformat;
-    m_bytesperline = pix->bytesperline;
+    pixelformat = pix->pixelformat;
+    m_formatObj = create_format_obj(pixelformat);
+    m_formatObj->init(pix->width, pix->height, pix->bytesperline);
     return true;
 }
 
 bool Camera::select_format()
 {
-    if(find_suitable_format()) {
-        return set_format();
+    const uint32_t pixelformat = find_suitable_format();
+    if(pixelformat) {
+        return set_format(pixelformat);
     }
     return false;
 }
@@ -661,32 +666,18 @@ int Camera::wait_buffer_ready(uint32_t * bytes_avail)
 
 int Camera::check_quality(int n, int left, uint32_t bytes_avail)
 {
-    unsigned int min_luma = 255;
-    unsigned int max_luma = 0;
-    __u64 luma_sum = 0;
-    int luma_mean;
+    ImageQuality qual;
     uint8_t * src = m_buf_starts[n];
-    unsigned j;
 
-    for(j = 0; j < bytes_avail/2; j++) {
-        uint8_t val = *src++;
-        src++;
-        if(val > max_luma) {
-            max_luma = val;
-        }
-        else if(val < min_luma) {
-            min_luma = val;
-        }
-        luma_sum += val;
-    }
-    luma_mean = (int)(2*(luma_sum/bytes_avail));
-    LOG_INFO("Luma, min=%i, max=%i, mean=%i", min_luma, max_luma,
-            luma_mean);
-    if(luma_mean > 128) {
-        set_control_value(m_brightness, get_control_value(m_brightness)-1);
+    m_formatObj->check_quality(src, bytes_avail, qual);
+
+    LOG_INFO("Luma, min=%i, max=%i, mean=%i", qual.luma_min, qual.luma_max,
+            qual.luma_mean);
+    if(qual.luma_mean > 128) {
+        set_control_value(m_brightness->get_id(), get_control_value(m_brightness->get_id())-1);
     }
     else {
-        set_control_value(m_brightness, get_control_value(m_brightness)+1);
+        set_control_value(m_brightness->get_id(), get_control_value(m_brightness->get_id())+1);
     }
     return left == 0;
 }

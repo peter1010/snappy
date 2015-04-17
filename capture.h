@@ -6,16 +6,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-struct Control_s
-{
-    uint32_t id;
-    int32_t minimum;	/* Note signedness */
-    int32_t maximum;
-    int32_t step;
-    int32_t value;
-};
+#include "format.h"
 
-typedef struct Control_s Control_t;
+class BaseFormat;
+class BaseControl;
 
 class Camera
 {
@@ -23,16 +17,13 @@ private:
     int m_fd;
     int m_buf_type; /* see enum v4l2_buf_type */
     
-    unsigned m_width;
-    unsigned m_height;
-    uint32_t m_pix_fmt; /* The pixel format */
-    uint32_t m_bytesperline;
+    BaseFormat * m_formatObj;
 
     uint8_t ** m_buf_starts;
     size_t * m_buf_lengths;
     int m_num_bufs;
     
-    uint32_t m_brightness;
+    BaseControl * m_brightness;
     uint32_t m_contrast;
     int m_input;
 
@@ -43,15 +34,18 @@ private:
     uint32_t query_buffer(int i);
     bool check_can_do_capture() const;
     bool select_camera_input();
-    bool find_suitable_format();
     bool find_suitable_input();
-    bool set_format();
     bool set_input();
+    uint32_t find_suitable_format();
+    bool set_format(uint32_t pixelformat);
 
 public:
     Camera(std::string &);
+    ~Camera();
     bool init();
     bool select_format();
+    unsigned height() const {return m_formatObj ? m_formatObj->height() : 0;};
+    unsigned width() const {return m_formatObj ? m_formatObj->width() : 0;};
 
     int check_quality(int n, int left, uint32_t bytes_avail);
     int request_buffers(int max_num);
@@ -60,15 +54,13 @@ public:
     void close();
     void check_controls();
     void disable_capture();
-    unsigned height() const {return m_height;};
-    unsigned width() const {return m_width;};
     uint8_t * buf_start(int n) const {return m_buf_starts[n];};
     void set_capture_params() const;
     void queue_buffer(int i);
     void enable_capture();
     void check_format();
     void check_input();
-    uint32_t pix_fmt() const { return m_pix_fmt;};
+    BaseFormat * fmt() const { return m_formatObj;};
 };
 
 #endif
