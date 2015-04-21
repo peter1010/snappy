@@ -250,6 +250,7 @@ void Camera::check_controls()
     struct v4l2_queryctrl control;
     int i;
     uint32_t id = 0;
+    LOG_DEBUG("Check controls");
     for(i = 0; i < 100; i++) {
         int retVal;
         int32_t value;
@@ -404,7 +405,7 @@ uint32_t Camera::find_suitable_format()
     struct v4l2_fmtdesc desc;
     unsigned i;
     unsigned j;
-    LOG_INFO("Check Formats");
+    LOG_INFO("Check Formats...");
     m_buf_type = -1;
     for(j = 0; j < sizeof(buf_types)/sizeof(int); j++) {
         /* Lets stop after a large number of formats (v unlikely) */
@@ -414,6 +415,7 @@ uint32_t Camera::find_suitable_format()
             memset(&desc, 0, sizeof(desc));
             desc.index = i;
             desc.type = buf_types[j];
+
 
             retVal = ioctl(m_fd, VIDIOC_ENUM_FMT, &desc);
             if(retVal == -1) {
