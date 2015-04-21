@@ -8,6 +8,13 @@
 
 #include <linux/videodev2.h>
 
+class CtrlCallback
+{
+public:
+    virtual bool set_control_value(int, int32_t);
+    virtual int32_t get_control_value(int);
+};
+
 class BaseControl
 {
 protected:
@@ -16,6 +23,8 @@ protected:
     int32_t m_maximum;
     int32_t m_step;
     int32_t m_value;
+    CtrlCallback * m_callbackObj;
+
 public:
     BaseControl(int id) : m_id(id) {};
     int get_id() const { return m_id; };

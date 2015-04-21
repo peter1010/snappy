@@ -7,11 +7,12 @@
 #include <stdbool.h>
 
 #include "format.h"
+#include "control.h"
 
 class BaseFormat;
 class BaseControl;
 
-class Camera
+class Camera : public CtrlCallback
 {
 private:
     int m_fd;
@@ -28,8 +29,9 @@ private:
     int m_input;
 
 private:
-    void set_control_value(int id, int32_t value);
-    int32_t get_control_value(int id);
+    virtual bool set_control_value(int id, int32_t value);
+    virtual int32_t get_control_value(int id);
+
     void set_control(int id, float percent);
     uint32_t query_buffer(int i);
     bool check_can_do_capture() const;
@@ -40,6 +42,8 @@ private:
     bool set_format(uint32_t pixelformat);
 
 public:
+    friend BaseControl;
+
     Camera(std::string &);
     ~Camera();
     bool init();
