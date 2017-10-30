@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <stdlib.h>
 
 #include <string>
 #include <vector>
@@ -89,7 +90,7 @@ Camera * find_camera_dev()
     }
     std::vector<std::string>::iterator p = poss.begin();
     while(p != poss.end()) {
-        LOG_ERROR("possible camera %s", p->c_str());
+        LOG_INFO("Possible camera %s", p->c_str());
         Camera * info = new Camera(*p);
         if(info->init()) {
             return info;
@@ -106,6 +107,10 @@ int main()
     set_logging_level(10);
     LOG_INFO("Starting");
     Camera * cam = find_camera_dev();
+    if(!cam) {
+        LOG_ERROR("No camera found");
+        return EXIT_FAILURE;
+    }
     cam->select_format();
 
 //  cam->check_standards();
