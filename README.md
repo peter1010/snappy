@@ -78,4 +78,14 @@ c_offset = 128
 y_scale = 1
 c_scale = 1
 
+IPCam
+=====
 
+Commands...
+/camera_control.cgi?loginuse=xxx&loginpas=yyy&param=1&value=91
+/snapshot.cgi?user=xxx&pwd=yyy
+
+brightness=1
+contrast=2
+
+&param=&value=&user=&pwd=&
