@@ -11,8 +11,8 @@
 class CtrlCallback
 {
 public:
-    virtual bool set_control_value(int, int32_t);
-    virtual int32_t get_control_value(int);
+    virtual bool set_control_value(int, int32_t) = 0;
+    virtual int32_t get_control_value(int) = 0;
 };
 
 class BaseControl

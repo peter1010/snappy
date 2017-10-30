@@ -134,7 +134,7 @@ void Camera::check_standards()
  * @param[in] id The Id of the control
  * @param[in] value The value to set it to
  */
-void Camera::set_control_value(int id, int32_t value)
+bool Camera::set_control_value(int id, int32_t value)
 {
     int retVal;
     if(V4L2_CTRL_ID2CLASS(id) == V4L2_CTRL_CLASS_USER) {
@@ -146,6 +146,7 @@ void Camera::set_control_value(int id, int32_t value)
         retVal = ioctl(m_fd, VIDIOC_S_CTRL, &setting);
         if(retVal != 0) {
             LOG_ERRNO_AS_ERROR("VIDIOC_S_CTRL");
+            return false;
         }
     }
     else {
@@ -167,9 +168,11 @@ void Camera::set_control_value(int id, int32_t value)
         retVal = ioctl(m_fd, VIDIOC_S_EXT_CTRLS, &setting);
         if(retVal != 0) {
             LOG_ERRNO_AS_ERROR("VIDIOC_S_EXT_CTRLS");
+            return false;
         }
     }
     LOG_INFO("Control 0x%X set to %i", id, value);
+    return true;
 }
 
 /**
